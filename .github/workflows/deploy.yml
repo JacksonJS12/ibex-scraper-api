@@ -1,0 +1,53 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Create appsettings.Production.json
+      run: |
+        mkdir -p IbexScraperApp
+        echo '{
+          "ConnectionStrings": {
+            "DefaultConnection": "${{ secrets.CONNECTIONSTRINGS__DEFAULTCONNECTION }}"
+          },
+          "ApiKey": "${{ secrets.APIKEY }}",
+          "Logging": {
+            "LogLevel": {
+              "Default": "Information",
+              "Microsoft.AspNetCore": "Warning"
+            }
+          },
+          "AllowedHosts": "*"
+        }' > IbexScraperApp/appsettings.Production.json
+
+    - name: Publish project
+      run: dotnet publish IbexScraperApp/IbexScraperApp.csproj -c Release -o publish
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ibex-scraper-api
+        slot-name: production
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+        package: publish

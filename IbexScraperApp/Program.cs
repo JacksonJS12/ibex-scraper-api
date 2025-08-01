@@ -12,8 +12,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IbexScraper>();
 builder.Services.AddHostedService<ScheduledScraperService>();
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddEnvironmentVariables();
 
-var app = builder.Build(); 
+var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
